@@ -9,6 +9,9 @@ const jwt = require('jsonwebtoken');
 const app = new(require('express'))();
 const port = 3000;
 
+const JWT_SECRET = 'secret-key';
+const JWT_TTL_SECONDS = parseInt(process.env.JWT_TTL_SECONDS, 10) || 300;
+
 const config = require('./webpack.config');
 const compiler = webpack(config);
 
@@ -21,8 +24,12 @@ app.use(bodyParser.json());
 
 app.post('/auth/getToken/', (req, res) => {
     if (req.body.email == 'hello@test.com' && req.body.password == 'test') {
-        res.status(200)
-            .json({token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyTmFtZSI6IlRlc3QgVXNlciJ9.J6n4-v0I85zk9MkxBHroZ9ZPZEES-IKeul9ozxYnoZ8'});
+        const token = jwt.sign(
+            { userName: 'Test User' },
+            JWT_SECRET,
+            { expiresIn: JWT_TTL_SECONDS }
+        );
+        res.status(200).json({ token });
     } else {
         res.sendStatus(403);
     }
@@ -34,7 +41,7 @@ app.get('/getData/', (req, res) => {
         res.sendStatus(401);
     } else {
         try {
-            let decoded = jwt.verify(token.replace('Bearer ', ''), 'secret-key');
+            let decoded = jwt.verify(token.replace('Bearer ', ''), JWT_SECRET);
             res.status(200)
                 .json({data: 'Valid JWT found! This protected data was fetched from the server.'});
         } catch (e) {
